@@ -235,18 +235,25 @@
         }
 
         .topbar {
-            background-color: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-            min-height: 44px;
+            display: none;
         }
 
-        .topbar-title {
-            display: none;
+        @media (max-width: 768px) {
+            .topbar {
+                background-color: var(--bg-secondary);
+                border-bottom: 1px solid var(--border);
+                padding: 8px 12px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .topbar-title {
+                display: block;
+                font-size: 14px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
         }
 
         .topbar-controls {
@@ -272,12 +279,11 @@
         .control-group {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             background-color: var(--bg);
             border: 1px solid var(--border);
             border-radius: 4px;
             padding: 4px;
-            flex: 1;
         }
 
         .control-group input {
@@ -614,6 +620,7 @@
                 <button class="icon-btn menu-toggle" id="menuToggle">
                     <span class="material-symbols-rounded">menu</span>
                 </button>
+                <div class="topbar-title">ChordHub</div>
             </div>
 
             <div class="tabs" id="tabsContainer" style="display: none;">
