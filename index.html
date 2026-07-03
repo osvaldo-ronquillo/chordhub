@@ -231,7 +231,7 @@
         .main {
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow-y: auto;
         }
 
         .topbar {
@@ -245,6 +245,7 @@
                 padding: 8px 12px;
                 display: flex;
                 align-items: center;
+                justify-content: space-between;
                 gap: 10px;
             }
             .topbar-title {
@@ -261,19 +262,28 @@
         }
 
         .bottom-controls {
-            position: sticky;
+            position: fixed;
             bottom: 0;
+            left: 280px;
+            right: 0;
             background-color: var(--bg-secondary);
             border-top: 1px solid var(--border);
             padding: 8px 12px;
             display: flex;
             gap: 8px;
             align-items: center;
-            z-index: 100;
+            flex-wrap: wrap;
+            z-index: 800;
         }
 
         .bottom-controls.hidden {
             display: none;
+        }
+
+        @media (max-width: 768px) {
+            .bottom-controls {
+                left: 0;
+            }
         }
 
         .control-group {
@@ -360,14 +370,12 @@
 
         .content {
             flex: 1;
-            overflow: hidden;
             display: flex;
         }
 
         .view {
             display: none;
             flex: 1;
-            overflow-y: auto;
             flex-direction: column;
         }
 
@@ -377,8 +385,8 @@
 
         .reader-content {
             padding: 24px;
+            padding-bottom: 90px;
             flex: 1;
-            overflow-y: auto;
         }
 
         .song-title {
@@ -667,6 +675,14 @@
                     <i class="fi fi-rs-interlining control-icon"></i>
                     <input type="number" id="lineHeight" min="1.0" max="2.5" step="0.1" value="1.8">
                     <button class="icon-btn" id="increaseLineHeight" style="width: 28px; height: 28px; font-size: 14px;">+</button>
+                </div>
+                <div class="control-group">
+                    <button class="icon-btn" id="autoScrollToggle" style="width: 28px; height: 28px;" title="Auto scroll">
+                        <span class="material-symbols-rounded" style="font-size: 18px;" id="autoScrollIcon">play_arrow</span>
+                    </button>
+                    <button class="icon-btn" id="decreaseScrollSpeed" style="width: 28px; height: 28px; font-size: 14px;">−</button>
+                    <input type="number" id="scrollSpeed" min="1" max="10" value="3" style="width: 30px;">
+                    <button class="icon-btn" id="increaseScrollSpeed" style="width: 28px; height: 28px; font-size: 14px;">+</button>
                 </div>
             </div>
         </div>
@@ -1051,6 +1067,54 @@
         document.getElementById('lineHeight').oninput = (e) => {
             state.lineHeight = Math.max(1.0, Math.min(2.5, parseFloat(e.target.value) || 1.8));
             renderReaderAndEditor();
+        };
+
+        // AUTO SCROLL
+        let autoScrollInterval = null;
+        let scrollSpeed = 3;
+        const mainEl = document.querySelector('.main');
+
+        function stopAutoScroll() {
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+                autoScrollInterval = null;
+                document.getElementById('autoScrollIcon').textContent = 'play_arrow';
+            }
+        }
+
+        function startAutoScroll() {
+            autoScrollInterval = setInterval(() => {
+                mainEl.scrollTop += 1;
+                if (mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight) {
+                    stopAutoScroll();
+                }
+            }, 110 - scrollSpeed * 10);
+            document.getElementById('autoScrollIcon').textContent = 'pause';
+        }
+
+        document.getElementById('autoScrollToggle').onclick = () => {
+            if (autoScrollInterval) {
+                stopAutoScroll();
+            } else {
+                startAutoScroll();
+            }
+        };
+
+        document.getElementById('decreaseScrollSpeed').onclick = () => {
+            scrollSpeed = Math.max(1, scrollSpeed - 1);
+            document.getElementById('scrollSpeed').value = scrollSpeed;
+            if (autoScrollInterval) { stopAutoScroll(); startAutoScroll(); }
+        };
+
+        document.getElementById('increaseScrollSpeed').onclick = () => {
+            scrollSpeed = Math.min(10, scrollSpeed + 1);
+            document.getElementById('scrollSpeed').value = scrollSpeed;
+            if (autoScrollInterval) { stopAutoScroll(); startAutoScroll(); }
+        };
+
+        document.getElementById('scrollSpeed').oninput = (e) => {
+            scrollSpeed = Math.max(1, Math.min(10, parseInt(e.target.value) || 3));
+            if (autoScrollInterval) { stopAutoScroll(); startAutoScroll(); }
         };
 
         if (!state.darkMode) {
