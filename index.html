@@ -832,33 +832,29 @@
             return 'major';
         }
 
+        const NEUTRAL_TOKEN = /^(\(|\)|\||-|\(?\d+x\)?|x\d+|\[.*\])$/i;
+
         function isChordLine(line) {
             const trimmed = line.trim();
-            if (!trimmed || trimmed.length === 0) return false;
-            const words = trimmed.split(/\s{2,}|\s*\n/);
-            return words.length > 0 && words.every(word => {
-                const w = word.trim();
-                return w === '' || CHORD_PATTERN.test(w) || w.match(/^\[.*\]$/);
+            if (!trimmed) return false;
+            const words = trimmed.split(/\s+/);
+            let hasChord = false;
+            const allValid = words.every(w => {
+                if (CHORD_PATTERN.test(w)) { hasChord = true; return true; }
+                return NEUTRAL_TOKEN.test(w);
             });
+            return allValid && hasChord;
         }
 
         function highlightChords(text) {
             return text.split('\n').map(line => {
-                if (isChordLine(line)) {
-                    const trimmed = line.trim();
-                    const leadingSpace = line.match(/^(\s*)/)[0];
-                    const words = trimmed.split(/\s{2,}/);
-                    const highlighted = words.map((word, idx) => {
-                        if (word.trim() === '') return word;
-                        if (CHORD_PATTERN.test(word.trim())) {
-                            const type = getChordType(word.trim());
-                            return `<span class="chord ${type}">${word}</span>`;
-                        }
-                        return word;
-                    }).join('  ');
-                    return leadingSpace + highlighted;
-                }
-                return line;
+                if (!isChordLine(line)) return line;
+                return line.split(/(\s+)/).map(tok => {
+                    if (tok.trim() && CHORD_PATTERN.test(tok)) {
+                        return `<span class="chord ${getChordType(tok)}">${tok}</span>`;
+                    }
+                    return tok;
+                }).join('');
             }).join('\n');
         }
 
