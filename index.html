@@ -127,7 +127,7 @@
             gap: 6px;
         }
 
-        .sort-select {
+        .sort-btn {
             flex: 1;
             padding: 6px 8px;
             border: 1px solid var(--border);
@@ -135,7 +135,12 @@
             background-color: var(--bg);
             color: var(--text);
             font-size: 11px;
+            font-weight: 600;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
         }
 
         .search-box {
@@ -261,29 +266,50 @@
             display: none;
         }
 
-        .bottom-controls {
-            position: fixed;
-            bottom: 0;
-            left: 280px;
-            right: 0;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border);
-            padding: 8px 12px;
+        .song-header {
             display: flex;
-            gap: 8px;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .song-header-info {
+            width: 70%;
+        }
+
+        .song-header-controls {
+            width: 30%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .float-scroll {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 8px 14px;
+            display: flex;
             align-items: center;
-            flex-wrap: wrap;
-            z-index: 800;
+            gap: 10px;
+            z-index: 900;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+            transition: opacity 0.25s, transform 0.25s;
         }
 
-        .bottom-controls.hidden {
-            display: none;
+        .float-scroll.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(12px);
         }
 
-        @media (max-width: 768px) {
-            .bottom-controls {
-                left: 0;
-            }
+        .float-scroll input[type="range"] {
+            width: 90px;
+            accent-color: var(--accent);
         }
 
         .control-group {
@@ -447,6 +473,77 @@
             border-color: var(--accent);
         }
 
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .chip {
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            font-size: 11px;
+            cursor: pointer;
+            background-color: var(--bg);
+            color: var(--text);
+        }
+
+        .chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1200;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            width: min(420px, 92vw);
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .manage-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin: 4px 0;
+            font-size: 13px;
+        }
+
+        .manage-empty {
+            color: var(--text-muted);
+            font-size: 12px;
+            padding: 8px;
+        }
+
         .song-content {
             font-family: 'JetBrains Mono', monospace;
             white-space: pre-wrap;
@@ -607,10 +704,13 @@
             </div>
 
             <div class="sidebar-controls">
-                <select class="sort-select" id="sortSelect">
-                    <option value="title">Por título</option>
-                    <option value="artist">Por artista</option>
-                </select>
+                <button class="sort-btn" id="sortBtn">
+                    <span id="sortLabel">Artista</span>
+                    <span class="material-symbols-rounded" id="sortChevron" style="font-size: 16px;">keyboard_arrow_up</span>
+                </button>
+                <button class="icon-btn" id="manageBtn" title="Editar artistas y etiquetas" style="width: 32px; height: 32px;">
+                    <span class="material-symbols-rounded" style="font-size: 18px;">edit_note</span>
+                </button>
             </div>
 
             <input type="text" class="search-box" id="searchBox" placeholder="Buscar...">
@@ -663,27 +763,26 @@
                 </div>
             </div>
 
-            <div class="bottom-controls hidden" id="bottomControls">
-                <div class="control-group">
-                    <button class="icon-btn" id="decreaseFont" style="width: 28px; height: 28px; font-size: 14px;">−</button>
-                    <i class="fi fi-rs-text-size control-icon"></i>
-                    <input type="number" id="fontSize" min="12" max="48" value="16">
-                    <button class="icon-btn" id="increaseFont" style="width: 28px; height: 28px; font-size: 14px;">+</button>
+            <div class="modal-overlay hidden" id="manageModal">
+                <div class="modal">
+                    <div class="modal-header">
+                        <span>Editar datos</span>
+                        <button class="icon-btn" id="closeManage" style="width: 28px; height: 28px;">
+                            <span class="material-symbols-rounded" style="font-size: 18px;">close</span>
+                        </button>
+                    </div>
+                    <div class="tag-header">Artistas</div>
+                    <div id="manageArtists"></div>
+                    <div class="tag-header" style="margin-top: 12px;">Etiquetas</div>
+                    <div id="manageTags"></div>
                 </div>
-                <div class="control-group">
-                    <button class="icon-btn" id="decreaseLineHeight" style="width: 28px; height: 28px; font-size: 14px;">−</button>
-                    <i class="fi fi-rs-interlining control-icon"></i>
-                    <input type="number" id="lineHeight" min="1.0" max="2.5" step="0.1" value="1.8">
-                    <button class="icon-btn" id="increaseLineHeight" style="width: 28px; height: 28px; font-size: 14px;">+</button>
-                </div>
-                <div class="control-group">
-                    <button class="icon-btn" id="autoScrollToggle" style="width: 28px; height: 28px;" title="Auto scroll">
-                        <span class="material-symbols-rounded" style="font-size: 18px;" id="autoScrollIcon">play_arrow</span>
-                    </button>
-                    <button class="icon-btn" id="decreaseScrollSpeed" style="width: 28px; height: 28px; font-size: 14px;">−</button>
-                    <input type="number" id="scrollSpeed" min="1" max="10" value="3" style="width: 30px;">
-                    <button class="icon-btn" id="increaseScrollSpeed" style="width: 28px; height: 28px; font-size: 14px;">+</button>
-                </div>
+            </div>
+
+            <div class="float-scroll hidden" id="floatScroll">
+                <button class="icon-btn" id="autoScrollToggle" title="Desplazamiento automático">
+                    <span class="material-symbols-rounded" id="autoScrollIcon">play_arrow</span>
+                </button>
+                <input type="range" id="scrollSpeed" min="1" max="10" value="3">
             </div>
         </div>
     </div>
@@ -713,11 +812,15 @@
             darkMode: localStorage.getItem('darkMode') !== 'false',
             filteredArtist: null,
             filteredTag: null,
-            sortBy: 'title',
+            sortBy: 'artist-asc',
             mobileMenuOpen: false
         };
 
         const CHORD_PATTERN = /^(Do|Re|Mi|Fa|Sol|La|Si|[A-G])(?:[#b])?(?:m|M|maj|maj7|m7|7|m7b5|dim|aug|\+|sus[24]|add\d+)?$/;
+
+        function normalizeTag(t) {
+            return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+        }
 
         function getChordType(chord) {
             const lower = chord.toLowerCase();
@@ -771,11 +874,7 @@
                         });
                     });
                 }
-                const sortMap = {
-                    title: (a, b) => (a.title || '').localeCompare(b.title || ''),
-                    artist: (a, b) => (a.artist || '').localeCompare(b.artist || '') || (a.title || '').localeCompare(b.title || '')
-                };
-                state.songs.sort(sortMap[state.sortBy] || sortMap.title);
+                sortSongs();
                 renderSongsList();
             });
         }
@@ -805,9 +904,12 @@
             }
 
             const grouped = groupBytags(toShow);
-            
-            Object.entries(grouped).forEach(([tag, songs]) => {
-                if (songs.length === 0) return;
+            const tagKeys = Object.keys(grouped).filter(t => t !== 'Sin etiqueta').sort((a, b) => a.localeCompare(b));
+            if (grouped['Sin etiqueta'] && grouped['Sin etiqueta'].length > 0) tagKeys.push('Sin etiqueta');
+
+            tagKeys.forEach(tag => {
+                const songs = grouped[tag];
+                if (!songs || songs.length === 0) return;
                 
                 const tagEl = document.createElement('div');
                 tagEl.className = 'tag-group';
@@ -839,6 +941,7 @@
             state.currentSongId = id;
             state.filteredArtist = null;
             state.filteredTag = null;
+            document.querySelector('.main').scrollTop = 0;
             renderSongsList();
             renderReaderAndEditor();
         }
@@ -850,16 +953,16 @@
                 document.getElementById('readerContent').innerHTML = '<div class="empty-state"><span class="material-symbols-rounded" style="font-size: 48px; opacity: 0.3;">library_books</span><div>Selecciona una canción</div></div>';
                 document.getElementById('editorContent').innerHTML = '<div class="empty-state"><span class="material-symbols-rounded" style="font-size: 48px; opacity: 0.3;">edit</span><div>Selecciona una canción</div></div>';
                 document.getElementById('tabsContainer').style.display = 'none';
-                document.getElementById('bottomControls').classList.add('hidden');
+                hideFloat();
                 document.getElementById('filtersBar').innerHTML = '';
                 return;
             }
 
             document.getElementById('tabsContainer').style.display = 'flex';
-            document.getElementById('bottomControls').classList.remove('hidden');
+            showFloat();
 
-            const artists = [...new Set(state.songs.map(s => s.artist).filter(Boolean))];
-            const tags = [...new Set(state.songs.flatMap(s => (s.tags || []) || []))];
+            const artists = song.artist ? [song.artist] : [];
+            const tags = song.tags || [];
             
             let filtersHtml = '<div class="filter-group"><span class="filter-label">Artista:</span>';
             artists.forEach(artist => {
@@ -898,10 +1001,29 @@
 
             const readerContent = document.getElementById('readerContent');
             readerContent.innerHTML = `
-                <div class="song-title">${song.title || 'Sin título'}</div>
-                <div class="song-artist">${song.artist || ''}</div>
+                <div class="song-header">
+                    <div class="song-header-info">
+                        <div class="song-title">${song.title || 'Sin título'}</div>
+                        <div class="song-artist">${song.artist || ''}</div>
+                    </div>
+                    <div class="song-header-controls">
+                        <div class="control-group">
+                            <button class="icon-btn" id="decreaseFont" style="width: 28px; height: 28px; font-size: 14px;">−</button>
+                            <i class="fi fi-rs-text-size control-icon"></i>
+                            <input type="number" id="fontSize" min="12" max="48" value="${state.fontSize}">
+                            <button class="icon-btn" id="increaseFont" style="width: 28px; height: 28px; font-size: 14px;">+</button>
+                        </div>
+                        <div class="control-group">
+                            <button class="icon-btn" id="decreaseLineHeight" style="width: 28px; height: 28px; font-size: 14px;">−</button>
+                            <i class="fi fi-rs-interlining control-icon"></i>
+                            <input type="number" id="lineHeight" min="1.0" max="2.5" step="0.1" value="${state.lineHeight}">
+                            <button class="icon-btn" id="increaseLineHeight" style="width: 28px; height: 28px; font-size: 14px;">+</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="song-content" style="font-size: ${state.fontSize}px; line-height: ${state.lineHeight};">${highlightChords(song.content || '')}</div>
             `;
+            bindReaderControls();
 
             const editorContent = document.getElementById('editorContent');
             editorContent.innerHTML = `
@@ -912,10 +1034,12 @@
                 <div class="form-group">
                     <label>Artista</label>
                     <input type="text" id="inputArtist" value="${song.artist || ''}" placeholder="Artista">
+                    <div class="chips" id="artistChips"></div>
                 </div>
                 <div class="form-group">
                     <label>Etiquetas (separadas por comas)</label>
                     <input type="text" id="inputTags" value="${(song.tags || []).join(', ')}" placeholder="tag1, tag2">
+                    <div class="chips" id="tagChips"></div>
                 </div>
                 <div class="form-group" style="flex: 1;">
                     <label>Contenido</label>
@@ -935,16 +1059,17 @@
 
             document.getElementById('btnSave').onclick = () => saveSong(song.id);
             document.getElementById('btnDelete').onclick = () => deleteSong(song.id);
+            setupEditorSuggestions();
         }
 
         function saveSong(id) {
             const title = document.getElementById('inputTitle').value || 'Sin título';
             const artist = document.getElementById('inputArtist').value || '';
             const content = document.getElementById('inputContent').value || '';
-            const tags = document.getElementById('inputTags').value
+            const tags = [...new Set(document.getElementById('inputTags').value
                 .split(',')
-                .map(t => t.trim())
-                .filter(Boolean);
+                .map(t => normalizeTag(t))
+                .filter(Boolean))];
 
             set(ref(db, `songs/${id}`), {
                 title,
@@ -1018,9 +1143,120 @@
             }
         };
 
-        document.getElementById('sortSelect').onchange = (e) => {
-            state.sortBy = e.target.value;
-            loadSongs();
+        const sortStates = ['artist-asc', 'artist-desc', 'title-asc', 'title-desc'];
+        const sortLabels = { artist: 'Artista', title: 'Título' };
+
+        function sortSongs() {
+            const [field, dir] = state.sortBy.split('-');
+            state.songs.sort((a, b) => {
+                const va = (a[field] || '').toLowerCase();
+                const vb = (b[field] || '').toLowerCase();
+                const cmp = va.localeCompare(vb) || (a.title || '').localeCompare(b.title || '');
+                return dir === 'asc' ? cmp : -cmp;
+            });
+        }
+
+        document.getElementById('sortBtn').onclick = () => {
+            const idx = sortStates.indexOf(state.sortBy);
+            state.sortBy = sortStates[(idx + 1) % sortStates.length];
+            const [field, dir] = state.sortBy.split('-');
+            document.getElementById('sortLabel').textContent = sortLabels[field];
+            document.getElementById('sortChevron').textContent = dir === 'asc' ? 'keyboard_arrow_up' : 'keyboard_arrow_down';
+            sortSongs();
+            renderSongsList();
+        };
+
+        // SUGERENCIAS EN EDITOR
+        function setupEditorSuggestions() {
+            const artistInput = document.getElementById('inputArtist');
+            const tagsInput = document.getElementById('inputTags');
+            const artistChips = document.getElementById('artistChips');
+            const tagChips = document.getElementById('tagChips');
+            if (!artistInput || !tagsInput) return;
+
+            const allArtists = () => [...new Set(state.songs.map(s => s.artist).filter(Boolean))].sort();
+            const allTags = () => [...new Set(state.songs.flatMap(s => s.tags || []))].sort();
+
+            function renderArtistChips() {
+                const f = artistInput.value.toLowerCase().trim();
+                const matches = allArtists().filter(a => a.toLowerCase().includes(f) && a !== artistInput.value.trim());
+                artistChips.innerHTML = matches.map(a => `<span class="chip" data-v="${a}">${a}</span>`).join('');
+                artistChips.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+                    artistInput.value = c.dataset.v;
+                    renderArtistChips();
+                });
+            }
+
+            function renderTagChips() {
+                const parts = tagsInput.value.split(',').map(t => t.trim());
+                const current = (parts[parts.length - 1] || '').toLowerCase();
+                const selected = parts.slice(0, -1).map(t => normalizeTag(t));
+                const matches = allTags().filter(t => !selected.includes(t) && t.toLowerCase().includes(current));
+                tagChips.innerHTML = matches.map(t => `<span class="chip" data-v="${t}">${t}</span>`).join('');
+                tagChips.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+                    const p = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean);
+                    if (current) p.pop();
+                    if (!p.map(x => normalizeTag(x)).includes(c.dataset.v)) p.push(c.dataset.v);
+                    tagsInput.value = p.join(', ');
+                    renderTagChips();
+                });
+            }
+
+            artistInput.oninput = renderArtistChips;
+            tagsInput.oninput = renderTagChips;
+            renderArtistChips();
+            renderTagChips();
+        }
+
+        // EDICION GLOBAL DE ARTISTAS Y ETIQUETAS
+        function renderManage() {
+            const artists = [...new Set(state.songs.map(s => s.artist).filter(Boolean))].sort();
+            const tags = [...new Set(state.songs.flatMap(s => s.tags || []))].sort();
+            const aEl = document.getElementById('manageArtists');
+            const tEl = document.getElementById('manageTags');
+
+            aEl.innerHTML = artists.map(a => `<div class="manage-item"><span>${a}</span><button class="icon-btn" data-a="${a}" style="width: 28px; height: 28px;"><span class="material-symbols-rounded" style="font-size: 16px;">edit</span></button></div>`).join('') || '<div class="manage-empty">Sin artistas</div>';
+            tEl.innerHTML = tags.map(t => `<div class="manage-item"><span>${t}</span><button class="icon-btn" data-t="${t}" style="width: 28px; height: 28px;"><span class="material-symbols-rounded" style="font-size: 16px;">edit</span></button></div>`).join('') || '<div class="manage-empty">Sin etiquetas</div>';
+
+            aEl.querySelectorAll('button').forEach(b => b.onclick = () => renameArtist(b.dataset.a));
+            tEl.querySelectorAll('button').forEach(b => b.onclick = () => renameTag(b.dataset.t));
+        }
+
+        function renameArtist(oldName) {
+            const n = prompt('Nuevo nombre para el artista:', oldName);
+            if (!n || n.trim() === '' || n.trim() === oldName) return;
+            state.songs.filter(s => s.artist === oldName).forEach(s => {
+                set(ref(db, `songs/${s.id}/artist`), n.trim());
+            });
+            setTimeout(renderManage, 400);
+        }
+
+        function renameTag(oldTag) {
+            const n = prompt('Nuevo nombre para la etiqueta:', oldTag);
+            if (!n || n.trim() === '') return;
+            const norm = normalizeTag(n);
+            if (norm === oldTag) return;
+            state.songs.forEach(s => {
+                const tags = s.tags || [];
+                if (tags.includes(oldTag)) {
+                    const updated = [...new Set(tags.map(t => t === oldTag ? norm : t))];
+                    set(ref(db, `songs/${s.id}/tags`), updated);
+                }
+            });
+            setTimeout(renderManage, 400);
+        }
+
+        document.getElementById('manageBtn').onclick = () => {
+            renderManage();
+            document.getElementById('manageModal').classList.remove('hidden');
+        };
+
+        document.getElementById('closeManage').onclick = () => {
+            document.getElementById('manageModal').classList.add('hidden');
+        };
+
+        document.getElementById('manageModal').onclick = (e) => {
+            if (e.target.id === 'manageModal') e.target.classList.add('hidden');
         };
 
         document.querySelectorAll('.tab').forEach(tab => {
@@ -1033,46 +1269,39 @@
             };
         });
 
-        document.getElementById('decreaseFont').onclick = () => {
-            state.fontSize = Math.max(12, state.fontSize - 1);
-            document.getElementById('fontSize').value = state.fontSize;
-            renderReaderAndEditor();
-        };
+        function bindReaderControls() {
+            const df = document.getElementById('decreaseFont');
+            if (!df) return;
+            df.onclick = () => { state.fontSize = Math.max(12, state.fontSize - 1); renderReaderAndEditor(); };
+            document.getElementById('increaseFont').onclick = () => { state.fontSize = Math.min(48, state.fontSize + 1); renderReaderAndEditor(); };
+            document.getElementById('fontSize').onchange = (e) => { state.fontSize = Math.max(12, Math.min(48, parseInt(e.target.value) || 16)); renderReaderAndEditor(); };
+            document.getElementById('decreaseLineHeight').onclick = () => { state.lineHeight = Math.round(Math.max(1.0, state.lineHeight - 0.1) * 10) / 10; renderReaderAndEditor(); };
+            document.getElementById('increaseLineHeight').onclick = () => { state.lineHeight = Math.round(Math.min(2.5, state.lineHeight + 0.1) * 10) / 10; renderReaderAndEditor(); };
+            document.getElementById('lineHeight').onchange = (e) => { state.lineHeight = Math.max(1.0, Math.min(2.5, parseFloat(e.target.value) || 1.8)); renderReaderAndEditor(); };
+        }
 
-        document.getElementById('increaseFont').onclick = () => {
-            state.fontSize = Math.min(48, state.fontSize + 1);
-            document.getElementById('fontSize').value = state.fontSize;
-            renderReaderAndEditor();
-        };
-
-        document.getElementById('fontSize').oninput = (e) => {
-            state.fontSize = Math.max(12, Math.min(48, parseInt(e.target.value) || 16));
-            renderReaderAndEditor();
-        };
-
-        document.getElementById('decreaseLineHeight').onclick = () => {
-            state.lineHeight = Math.max(1.0, state.lineHeight - 0.1);
-            state.lineHeight = Math.round(state.lineHeight * 10) / 10;
-            document.getElementById('lineHeight').value = state.lineHeight;
-            renderReaderAndEditor();
-        };
-
-        document.getElementById('increaseLineHeight').onclick = () => {
-            state.lineHeight = Math.min(2.5, state.lineHeight + 0.1);
-            state.lineHeight = Math.round(state.lineHeight * 10) / 10;
-            document.getElementById('lineHeight').value = state.lineHeight;
-            renderReaderAndEditor();
-        };
-
-        document.getElementById('lineHeight').oninput = (e) => {
-            state.lineHeight = Math.max(1.0, Math.min(2.5, parseFloat(e.target.value) || 1.8));
-            renderReaderAndEditor();
-        };
-
-        // AUTO SCROLL
+        // FLOTANTE Y AUTO SCROLL
+        const mainEl = document.querySelector('.main');
+        const floatEl = document.getElementById('floatScroll');
         let autoScrollInterval = null;
         let scrollSpeed = 3;
-        const mainEl = document.querySelector('.main');
+        let lastScrollTop = 0;
+
+        function showFloat() {
+            if (state.currentSongId) floatEl.classList.remove('hidden');
+        }
+
+        function hideFloat() {
+            floatEl.classList.add('hidden');
+        }
+
+        function scrollTick() {
+            mainEl.scrollTop += 1;
+            if (mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - 1) {
+                stopAutoScroll();
+                showFloat();
+            }
+        }
 
         function stopAutoScroll() {
             if (autoScrollInterval) {
@@ -1083,16 +1312,13 @@
         }
 
         function startAutoScroll() {
-            autoScrollInterval = setInterval(() => {
-                mainEl.scrollTop += 1;
-                if (mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight) {
-                    stopAutoScroll();
-                }
-            }, 110 - scrollSpeed * 10);
+            autoScrollInterval = setInterval(scrollTick, 110 - scrollSpeed * 10);
             document.getElementById('autoScrollIcon').textContent = 'pause';
+            hideFloat();
         }
 
-        document.getElementById('autoScrollToggle').onclick = () => {
+        document.getElementById('autoScrollToggle').onclick = (e) => {
+            e.stopPropagation();
             if (autoScrollInterval) {
                 stopAutoScroll();
             } else {
@@ -1100,22 +1326,30 @@
             }
         };
 
-        document.getElementById('decreaseScrollSpeed').onclick = () => {
-            scrollSpeed = Math.max(1, scrollSpeed - 1);
-            document.getElementById('scrollSpeed').value = scrollSpeed;
-            if (autoScrollInterval) { stopAutoScroll(); startAutoScroll(); }
-        };
-
-        document.getElementById('increaseScrollSpeed').onclick = () => {
-            scrollSpeed = Math.min(10, scrollSpeed + 1);
-            document.getElementById('scrollSpeed').value = scrollSpeed;
-            if (autoScrollInterval) { stopAutoScroll(); startAutoScroll(); }
-        };
-
         document.getElementById('scrollSpeed').oninput = (e) => {
+            e.stopPropagation();
             scrollSpeed = Math.max(1, Math.min(10, parseInt(e.target.value) || 3));
-            if (autoScrollInterval) { stopAutoScroll(); startAutoScroll(); }
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+                autoScrollInterval = setInterval(scrollTick, 110 - scrollSpeed * 10);
+            }
         };
+
+        mainEl.addEventListener('scroll', () => {
+            if (autoScrollInterval) return;
+            const st = mainEl.scrollTop;
+            if (st > lastScrollTop + 5) hideFloat();
+            else if (st < lastScrollTop - 5) showFloat();
+            lastScrollTop = st;
+        });
+
+        mainEl.addEventListener('click', () => {
+            if (autoScrollInterval) showFloat();
+        });
+
+        mainEl.addEventListener('touchstart', () => {
+            if (autoScrollInterval) showFloat();
+        }, { passive: true });
 
         if (!state.darkMode) {
             document.body.classList.add('light');
