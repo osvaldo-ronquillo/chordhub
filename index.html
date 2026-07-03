@@ -872,13 +872,14 @@
                 }
                 sortSongs();
                 renderSongsList();
+                renderReaderAndEditor();
             });
         }
 
         function groupBytags(songs) {
-            const grouped = { 'Sin etiqueta': [] };
+            const grouped = {};
             songs.forEach(song => {
-                const tags = (song.tags || []).length > 0 ? song.tags : ['Sin etiqueta'];
+                const tags = (song.tags || []).length > 0 ? song.tags : ['SIN CATEGORIZAR'];
                 tags.forEach(tag => {
                     if (!grouped[tag]) grouped[tag] = [];
                     if (!grouped[tag].find(s => s.id === song.id)) {
@@ -900,8 +901,8 @@
             }
 
             const grouped = groupBytags(toShow);
-            const tagKeys = Object.keys(grouped).filter(t => t !== 'Sin etiqueta').sort((a, b) => a.localeCompare(b));
-            if (grouped['Sin etiqueta'] && grouped['Sin etiqueta'].length > 0) tagKeys.push('Sin etiqueta');
+            const tagKeys = Object.keys(grouped).filter(t => t !== 'SIN CATEGORIZAR').sort((a, b) => a.localeCompare(b));
+            if (grouped['SIN CATEGORIZAR'] && grouped['SIN CATEGORIZAR'].length > 0) tagKeys.push('SIN CATEGORIZAR');
 
             tagKeys.forEach(tag => {
                 const songs = grouped[tag];
@@ -1074,8 +1075,6 @@
                 tags,
                 updatedAt: new Date().toISOString()
             });
-
-            renderReaderAndEditor();
         }
 
         function deleteSong(id) {
@@ -1211,11 +1210,41 @@
             const aEl = document.getElementById('manageArtists');
             const tEl = document.getElementById('manageTags');
 
-            aEl.innerHTML = artists.map(a => `<div class="manage-item"><span>${a}</span><button class="icon-btn" data-a="${a}" style="width: 28px; height: 28px;"><span class="material-symbols-rounded" style="font-size: 16px;">edit</span></button></div>`).join('') || '<div class="manage-empty">Sin artistas</div>';
-            tEl.innerHTML = tags.map(t => `<div class="manage-item"><span>${t}</span><button class="icon-btn" data-t="${t}" style="width: 28px; height: 28px;"><span class="material-symbols-rounded" style="font-size: 16px;">edit</span></button></div>`).join('') || '<div class="manage-empty">Sin etiquetas</div>';
+            const btns = (attr, val) => `<span style="display: flex; gap: 2px;">
+                <button class="icon-btn" data-act="edit" data-${attr}="${val}" style="width: 28px; height: 28px;" title="Editar"><span class="material-symbols-rounded" style="font-size: 16px;">edit</span></button>
+                <button class="icon-btn" data-act="del" data-${attr}="${val}" style="width: 28px; height: 28px;" title="Eliminar"><span class="material-symbols-rounded" style="font-size: 16px;">delete</span></button>
+            </span>`;
 
-            aEl.querySelectorAll('button').forEach(b => b.onclick = () => renameArtist(b.dataset.a));
-            tEl.querySelectorAll('button').forEach(b => b.onclick = () => renameTag(b.dataset.t));
+            aEl.innerHTML = artists.map(a => `<div class="manage-item"><span>${a}</span>${btns('a', a)}</div>`).join('') || '<div class="manage-empty">Sin artistas</div>';
+            tEl.innerHTML = tags.map(t => `<div class="manage-item"><span>${t}</span>${btns('t', t)}</div>`).join('') || '<div class="manage-empty">Sin etiquetas</div>';
+
+            aEl.querySelectorAll('button').forEach(b => b.onclick = () => {
+                if (b.dataset.act === 'edit') renameArtist(b.dataset.a);
+                else deleteArtistGlobal(b.dataset.a);
+            });
+            tEl.querySelectorAll('button').forEach(b => b.onclick = () => {
+                if (b.dataset.act === 'edit') renameTag(b.dataset.t);
+                else deleteTagGlobal(b.dataset.t);
+            });
+        }
+
+        function deleteArtistGlobal(name) {
+            if (!confirm('Quitar el artista "' + name + '" de todas sus canciones? Las canciones no se eliminan.')) return;
+            state.songs.filter(s => s.artist === name).forEach(s => {
+                set(ref(db, `songs/${s.id}/artist`), '');
+            });
+            setTimeout(renderManage, 400);
+        }
+
+        function deleteTagGlobal(tag) {
+            if (!confirm('Eliminar la etiqueta "' + tag + '" de todas las canciones?')) return;
+            state.songs.forEach(s => {
+                const tags = s.tags || [];
+                if (tags.includes(tag)) {
+                    set(ref(db, `songs/${s.id}/tags`), tags.filter(t => t !== tag));
+                }
+            });
+            setTimeout(renderManage, 400);
         }
 
         function renameArtist(oldName) {
