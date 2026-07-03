@@ -6,6 +6,7 @@
     <title>ChordHub.top</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/uicons-regular-straight/css/uicons-regular-straight.css">
     <style>
         * {
             margin: 0;
@@ -241,17 +242,31 @@
             justify-content: space-between;
             align-items: center;
             gap: 8px;
+            min-height: 44px;
         }
 
         .topbar-title {
-            font-size: 16px;
-            font-weight: 600;
+            display: none;
         }
 
         .topbar-controls {
+            display: none;
+        }
+
+        .bottom-controls {
+            position: sticky;
+            bottom: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 8px 12px;
             display: flex;
             gap: 8px;
             align-items: center;
+            z-index: 100;
+        }
+
+        .bottom-controls.hidden {
+            display: none;
         }
 
         .control-group {
@@ -262,10 +277,11 @@
             border: 1px solid var(--border);
             border-radius: 4px;
             padding: 4px;
+            flex: 1;
         }
 
         .control-group input {
-            width: 35px;
+            width: 40px;
             border: none;
             background: none;
             text-align: center;
@@ -273,10 +289,13 @@
             font-size: 11px;
         }
 
-        .control-label {
-            font-size: 10px;
-            color: var(--text-muted);
-            min-width: 18px;
+        .control-icon {
+            font-size: 14px;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .menu-toggle {
@@ -595,21 +614,6 @@
                 <button class="icon-btn menu-toggle" id="menuToggle">
                     <span class="material-symbols-rounded">menu</span>
                 </button>
-                <div class="topbar-title" id="topbarTitle">ChordHub.top</div>
-                <div class="topbar-controls" id="topbarControls" style="display: none;">
-                    <div class="control-group">
-                        <button class="icon-btn" id="decreaseFont" style="width: 28px; height: 28px; font-size: 14px;">−</button>
-                        <input type="number" id="fontSize" min="12" max="48" value="16">
-                        <span class="control-label">px</span>
-                        <button class="icon-btn" id="increaseFont" style="width: 28px; height: 28px; font-size: 14px;">+</button>
-                    </div>
-                    <div class="control-group">
-                        <button class="icon-btn" id="decreaseLineHeight" style="width: 28px; height: 28px; font-size: 14px;">−</button>
-                        <input type="number" id="lineHeight" min="1.0" max="2.5" step="0.1" value="1.8">
-                        <span class="control-label">lh</span>
-                        <button class="icon-btn" id="increaseLineHeight" style="width: 28px; height: 28px; font-size: 14px;">+</button>
-                    </div>
-                </div>
             </div>
 
             <div class="tabs" id="tabsContainer" style="display: none;">
@@ -641,6 +645,21 @@
                             <div>Selecciona una canción</div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="bottom-controls hidden" id="bottomControls">
+                <div class="control-group">
+                    <button class="icon-btn" id="decreaseFont" style="width: 28px; height: 28px; font-size: 14px;">−</button>
+                    <i class="fi fi-rs-text-size control-icon"></i>
+                    <input type="number" id="fontSize" min="12" max="48" value="16">
+                    <button class="icon-btn" id="increaseFont" style="width: 28px; height: 28px; font-size: 14px;">+</button>
+                </div>
+                <div class="control-group">
+                    <button class="icon-btn" id="decreaseLineHeight" style="width: 28px; height: 28px; font-size: 14px;">−</button>
+                    <i class="fi fi-rs-interlining control-icon"></i>
+                    <input type="number" id="lineHeight" min="1.0" max="2.5" step="0.1" value="1.8">
+                    <button class="icon-btn" id="increaseLineHeight" style="width: 28px; height: 28px; font-size: 14px;">+</button>
                 </div>
             </div>
         </div>
@@ -690,8 +709,11 @@
         function isChordLine(line) {
             const trimmed = line.trim();
             if (!trimmed || trimmed.length === 0) return false;
-            const words = trimmed.split(/\s+/);
-            return words.every(word => CHORD_PATTERN.test(word) || word.match(/^\[.*\]$/));
+            const words = trimmed.split(/\s{2,}|\s*\n/);
+            return words.length > 0 && words.every(word => {
+                const w = word.trim();
+                return w === '' || CHORD_PATTERN.test(w) || w.match(/^\[.*\]$/);
+            });
         }
 
         function highlightChords(text) {
@@ -699,14 +721,15 @@
                 if (isChordLine(line)) {
                     const trimmed = line.trim();
                     const leadingSpace = line.match(/^(\s*)/)[0];
-                    const words = trimmed.split(/(\s+)/);
-                    const highlighted = words.map(word => {
+                    const words = trimmed.split(/\s{2,}/);
+                    const highlighted = words.map((word, idx) => {
+                        if (word.trim() === '') return word;
                         if (CHORD_PATTERN.test(word.trim())) {
                             const type = getChordType(word.trim());
                             return `<span class="chord ${type}">${word}</span>`;
                         }
                         return word;
-                    }).join('');
+                    }).join('  ');
                     return leadingSpace + highlighted;
                 }
                 return line;
@@ -804,14 +827,13 @@
                 document.getElementById('readerContent').innerHTML = '<div class="empty-state"><span class="material-symbols-rounded" style="font-size: 48px; opacity: 0.3;">library_books</span><div>Selecciona una canción</div></div>';
                 document.getElementById('editorContent').innerHTML = '<div class="empty-state"><span class="material-symbols-rounded" style="font-size: 48px; opacity: 0.3;">edit</span><div>Selecciona una canción</div></div>';
                 document.getElementById('tabsContainer').style.display = 'none';
-                document.getElementById('topbarControls').style.display = 'none';
+                document.getElementById('bottomControls').classList.add('hidden');
                 document.getElementById('filtersBar').innerHTML = '';
                 return;
             }
 
-            document.getElementById('topbarTitle').textContent = song.title || 'Sin título';
             document.getElementById('tabsContainer').style.display = 'flex';
-            document.getElementById('topbarControls').style.display = 'flex';
+            document.getElementById('bottomControls').classList.remove('hidden');
 
             const artists = [...new Set(state.songs.map(s => s.artist).filter(Boolean))];
             const tags = [...new Set(state.songs.flatMap(s => (s.tags || []) || []))];
@@ -950,6 +972,14 @@
             document.getElementById('sidebar').classList.toggle('open');
         };
 
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.getElementById('menuToggle');
+            if (state.mobileMenuOpen && !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+                closeMobileMenu();
+            }
+        });
+
         document.getElementById('btnNew').onclick = newSong;
 
         document.getElementById('searchBox').oninput = (e) => {
@@ -976,6 +1006,7 @@
                 tab.classList.add('active');
                 document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
                 document.getElementById(tab.dataset.view + 'View').classList.add('active');
+                closeMobileMenu();
             };
         });
 
